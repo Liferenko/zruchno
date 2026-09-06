@@ -1,6 +1,7 @@
 package com.example.a10101010
 
 import android.app.Application
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import androidx.lifecycle.AndroidViewModel
@@ -21,15 +22,35 @@ fun filterApps(apps: List<AppInfo>, query: String): List<AppInfo> {
     }
 }
 
+fun orderHomeApps(apps: List<AppInfo>, hiddenPackages: Set<String>): List<AppInfo> {
+    val (hidden, visible) = apps.partition { it.packageName in hiddenPackages }
+    return visible + hidden
+}
+
+fun applyHiddenChange(current: Set<String>, packages: Set<String>, hidden: Boolean): Set<String> =
+    if (hidden) current + packages else current - packages
+
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private val packageManager = application.packageManager
+
+    private val prefs = application.getSharedPreferences("launcher", Context.MODE_PRIVATE)
+    private val hiddenPackagesKey = "hidden_packages"
 
     private val _apps = MutableStateFlow<List<AppInfo>>(emptyList())
     val apps: StateFlow<List<AppInfo>> = _apps.asStateFlow()
 
     private val _query = MutableStateFlow("")
     val query: StateFlow<String> = _query.asStateFlow()
+
+    private val _hiddenPackages = MutableStateFlow<Set<String>>(
+        prefs.getStringSet(hiddenPackagesKey, emptySet())?.toSet() ?: emptySet()
+    )
+    val hiddenPackages: StateFlow<Set<String>> = _hiddenPackages.asStateFlow()
+
+    val homeApps: StateFlow<List<AppInfo>> =
+        combine(_apps, _hiddenPackages) { apps, hidden -> orderHomeApps(apps, hidden) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val filteredApps: StateFlow<List<AppInfo>> =
         combine(_apps, _query) { apps, query -> filterApps(apps, query) }
@@ -45,6 +66,22 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun clearSearch() {
         _query.value = ""
+    }
+
+    fun toggleHidden(app: AppInfo) {
+        val current = _hiddenPackages.value
+        _hiddenPackages.value =
+            if (app.packageName in current) current - app.packageName else current + app.packageName
+        prefs.edit().putStringSet(hiddenPackagesKey, _hiddenPackages.value.toMutableSet()).apply()
+    }
+
+    fun setHidden(packages: Set<String>, hidden: Boolean) {
+        val current = _hiddenPackages.value
+        val updated = applyHiddenChange(current, packages, hidden)
+        if (updated != current) {
+            _hiddenPackages.value = updated
+            prefs.edit().putStringSet(hiddenPackagesKey, updated.toMutableSet()).apply()
+        }
     }
 
     fun refresh() {
