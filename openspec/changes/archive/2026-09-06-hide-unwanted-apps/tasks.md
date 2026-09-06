@@ -37,13 +37,13 @@
 
 ## 6. Bulk Actions (Selection Mode)
 
-- [ ] 6.1 Add ViewModel `setHidden(packages, hidden)` bulk action (single persist)
-- [ ] 6.2 Add "select" option to the long-press menu; choosing it enters selection mode and marks the app selected
-- [ ] 6.3 Render a leading marker (`·` unselected / `»` selected) on each row while in selection mode
-- [ ] 6.4 Tapping a row in selection mode toggles selection instead of launching
-- [ ] 6.5 Add a bulk-action bar (`N selected`, hide / unhide / ×) above the list
-- [ ] 6.6 Bulk hide/unhide apply to the applicable selected subset; exit selection mode when nothing remains selected
-- [ ] 6.7 Back / × exits selection mode without applying changes
-- [ ] 6.8 Unit test: `setHiddenMany` bulk semantics via pure helper (add/remove package sets)
-- [ ] 6.9 `./gradlew assembleDebug` builds and `./gradlew testDebugUnitTest` passes
-- [ ] 6.10 Manual (emulator): select 10 hidden apps, bulk unhide, verify restored to normal list
+- [x] 6.1 Add ViewModel `setHidden(packages, hidden)` bulk action (single persist)
+- [x] 6.2 Add "select" option to the long-press menu; choosing it enters selection mode and marks the app selected
+- [x] 6.3 Render a leading marker (`·` unselected / `»` selected) on each row while in selection mode
+- [x] 6.4 Tapping a row in selection mode toggles selection instead of launching
+- [x] 6.5 Add a bulk-action bar (`N selected`, hide / unhide / ×) at the bottom of the screen
+- [x] 6.6 Bulk hide/unhide apply to the applicable selected subset; exit selection mode when nothing remains selected
+- [x] 6.7 Back / × exits selection mode without applying changes
+- [x] 6.8 Unit test: `setHiddenMany` bulk semantics via pure helper (add/remove package sets)
+- [x] 6.9 `./gradlew assembleDebug` builds and `./gradlew testDebugUnitTest` passes
+- [x] 6.10 Manual (emulator): select 10 hidden apps, bulk unhide, verify restored to normal list

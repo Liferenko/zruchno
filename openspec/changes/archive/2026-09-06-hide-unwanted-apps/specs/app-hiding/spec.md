@@ -24,11 +24,11 @@ Choosing **Hide** for an app SHALL remove it from its alphabetical position and 
 - **THEN** the hidden apps SHALL appear grouped at the bottom, ordered alphabetically among themselves
 
 ### Requirement: Hidden apps rendered at reduced opacity
-Hidden apps SHALL be rendered at 30% opacity of the primary text color so they remain distinguishable from visible apps.
+Hidden apps SHALL be rendered at 15% opacity of the primary text color so they remain distinguishable from visible apps.
 
 #### Scenario: Hidden app label dimmed
 - **WHEN** the app list is displayed
-- **THEN** hidden app labels SHALL use 30% of the primary text color opacity
+- **THEN** hidden app labels SHALL use 15% of the primary text color opacity
 
 #### Scenario: Hidden app still tappable
 - **WHEN** the user taps a hidden app label
@@ -83,4 +83,4 @@ The bulk-action bar in selection mode SHALL offer **hide** and **unhide** action
 
 #### Scenario: Bulk hide visible apps
 - **WHEN** the user has selected several visible apps and presses the hide action
-- **THEN** the selected apps SHALL move to the bottom of the list at 30% opacity
+- **THEN** the selected apps SHALL move to the bottom of the list at 15% opacity
