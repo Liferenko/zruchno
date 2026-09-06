@@ -199,7 +199,7 @@ fun HomeScreen(
                     items(apps, key = { it.packageName }) { app ->
                         val isHidden = !searchActive && app.packageName in hiddenPackages
                         val labelColor = if (isHidden) {
-                            MaterialTheme.colorScheme.onBackground.copy(alpha = 0.15f)
+                            MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f)
                         } else {
                             MaterialTheme.colorScheme.onBackground
                         }
@@ -304,7 +304,7 @@ fun HomeScreen(
                         color = if (visibleSelected.isNotEmpty()) {
                             MaterialTheme.colorScheme.onBackground
                         } else {
-                            MaterialTheme.colorScheme.onBackground.copy(alpha = 0.15f)
+                            MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f)
                         },
                         modifier = Modifier.clickable(enabled = visibleSelected.isNotEmpty()) {
                             applyBulk(visibleSelected, true)
@@ -316,7 +316,7 @@ fun HomeScreen(
                         color = if (hiddenSelected.isNotEmpty()) {
                             MaterialTheme.colorScheme.onBackground
                         } else {
-                            MaterialTheme.colorScheme.onBackground.copy(alpha = 0.15f)
+                            MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f)
                         },
                         modifier = Modifier.clickable(enabled = hiddenSelected.isNotEmpty()) {
                             applyBulk(hiddenSelected, false)
