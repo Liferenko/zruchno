@@ -23,7 +23,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         val launcherIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
         val resolveInfos = packageManager.queryIntentActivities(
             launcherIntent,
-            PackageManager.ResolveInfoFlags.of(0)
+            PackageManager.ResolveInfoFlags.of(PackageManager.MATCH_ALL.toLong())
         )
         _apps.value = resolveInfos
             .mapNotNull { info ->
