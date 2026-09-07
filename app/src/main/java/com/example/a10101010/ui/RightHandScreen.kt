@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -128,6 +129,7 @@ fun RightHandScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
             .systemBarsPadding()
+            .imePadding()
     ) {
         val boxWidth = maxWidth
         val boxHeight = maxHeight
@@ -161,24 +163,6 @@ fun RightHandScreen(
         }
 
         Column(Modifier.fillMaxSize()) {
-            AnimatedVisibility(visible = searchVisible) {
-                AppSearchField(
-                    query = query,
-                    onQueryChange = onQueryChange,
-                    onClear = { collapseSearch() },
-                    autofocus = searchVisible,
-                    textStyle = labelStyle,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(
-                            start = boxWidth * 0.38f,
-                            end = boxWidth * 0.04f,
-                            top = boxHeight * 0.02f,
-                            bottom = boxHeight * 0.02f
-                        )
-                )
-            }
-
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -256,6 +240,24 @@ fun RightHandScreen(
                         }
                     }
                 }
+            }
+
+            AnimatedVisibility(visible = searchVisible) {
+                AppSearchField(
+                    query = query,
+                    onQueryChange = onQueryChange,
+                    onClear = { collapseSearch() },
+                    autofocus = searchVisible,
+                    textStyle = labelStyle,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            start = boxWidth * 0.38f,
+                            end = boxWidth * 0.04f,
+                            top = boxHeight * 0.02f,
+                            bottom = boxHeight * 0.02f
+                        )
+                )
             }
 
             AnimatedVisibility(visible = selectionMode) {

@@ -1,4 +1,4 @@
-# 10101010
+# Zruchno
 
 A minimal, terminal-inspired Android home-screen launcher. Text labels instead of icons, white text on black background, no visual noise. Say goodbye to the icons — say hello to names.
 
