@@ -1,4 +1,4 @@
-package com.example.a10101010
+package com.zruchno
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -125,5 +125,31 @@ class HomeViewModelTest {
         val current = setOf("com.example.calendar", "com.example.camera")
         val updated = applyHiddenChange(current, setOf("com.example.phone"), true)
         assertEquals(setOf("com.example.calendar", "com.example.camera", "com.example.phone"), updated)
+    }
+
+    @Test
+    fun adjustFontSizeGrowthMultiplies() {
+        assertEquals(22.5f, adjustFontSize(18f, 1.25f), 0.001f)
+    }
+
+    @Test
+    fun adjustFontSizeShrinkMultiplies() {
+        assertEquals(14.4f, adjustFontSize(18f, 0.8f), 0.001f)
+    }
+
+    @Test
+    fun adjustFontSizeClampsAtMax() {
+        assertEquals(MAX_FONT_SIZE, adjustFontSize(49f, 2f), 0.001f)
+    }
+
+    @Test
+    fun adjustFontSizeClampsAtMin() {
+        assertEquals(MIN_FONT_SIZE, adjustFontSize(12f, 0.1f), 0.001f)
+    }
+
+    @Test
+    fun adjustFontSizeIgnoresNonPositiveRatio() {
+        assertEquals(18f, adjustFontSize(18f, 0f), 0.001f)
+        assertEquals(18f, adjustFontSize(18f, -1f), 0.001f)
     }
 }

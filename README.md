@@ -23,7 +23,23 @@ This project is oriented at foldable/flip devices (GitHub topic: [`foldable-devi
 ./gradlew assembleDebug
 ```
 
-Install the debug APK, then open the system **Home** settings and select **10101010** as the default launcher.
+### Set as default launcher
+
+**HyperOS / MIUI (Settings):** *Настройки → Приложения → Стандартные приложения → Домашний экран → zruchno*. Alternatively, press the **Home** button once after installing and pick **Always**.
+
+**HyperOS / any Android 10+ (adb):**
+
+```bash
+adb shell cmd role add-role-holder android.app.role.HOME com.zruchno
+```
+
+To revert to the previous launcher, either change it in Settings or run:
+
+```bash
+adb shell cmd role remove-role-holder android.app.role.HOME com.zruchno
+```
+
+The debug APK is installed as a normal (non-testOnly) app; for daily driving, install `app/build/outputs/apk/release/app-release.apk` (non-debuggable, signed) instead.
 
 ## Out of scope (for now)
 

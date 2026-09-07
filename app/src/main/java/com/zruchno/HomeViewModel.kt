@@ -1,4 +1,4 @@
-package com.example.a10101010
+package com.zruchno
 
 import android.app.Application
 import android.content.Context
@@ -35,12 +35,25 @@ fun orderHandApps(apps: List<AppInfo>, hiddenPackages: Set<String>): List<AppInf
 fun applyHiddenChange(current: Set<String>, packages: Set<String>, hidden: Boolean): Set<String> =
     if (hidden) current + packages else current - packages
 
+const val MIN_FONT_SIZE = 10f
+const val MAX_FONT_SIZE = 50f
+const val DEFAULT_FONT_SIZE = 18f
+
+fun adjustFontSize(current: Float, ratio: Float): Float =
+    if (ratio <= 0f || current == 0f) current else (current * ratio).coerceIn(MIN_FONT_SIZE, MAX_FONT_SIZE)
+
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private val packageManager = application.packageManager
 
     private val prefs = application.getSharedPreferences("launcher", Context.MODE_PRIVATE)
     private val hiddenPackagesKey = "hidden_packages"
+    private val fontSizeKey = "font_size"
+
+    private val _fontSize = MutableStateFlow(
+        prefs.getFloat(fontSizeKey, DEFAULT_FONT_SIZE).coerceIn(MIN_FONT_SIZE, MAX_FONT_SIZE)
+    )
+    val fontSize: StateFlow<Float> = _fontSize.asStateFlow()
 
     private val _apps = MutableStateFlow<List<AppInfo>>(emptyList())
     val apps: StateFlow<List<AppInfo>> = _apps.asStateFlow()
@@ -75,6 +88,15 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun clearSearch() {
         _query.value = ""
+    }
+
+    fun applyFontRatio(ratio: Float) {
+        val current = _fontSize.value
+        val updated = adjustFontSize(current, ratio)
+        if (updated != current) {
+            _fontSize.value = updated
+            prefs.edit().putFloat(fontSizeKey, updated).apply()
+        }
     }
 
     fun toggleHidden(app: AppInfo) {

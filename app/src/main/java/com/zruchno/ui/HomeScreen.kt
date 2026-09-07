@@ -1,4 +1,4 @@
-package com.example.a10101010.ui
+package com.zruchno.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -8,6 +8,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -36,6 +38,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -43,6 +47,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
@@ -51,9 +57,36 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.remember
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.a10101010.AppInfo
-import com.example.a10101010.HomeViewModel
-import com.example.a10101010.ui.theme.MonochromeTheme
+import com.zruchno.AppInfo
+import com.zruchno.DEFAULT_FONT_SIZE
+import com.zruchno.HomeViewModel
+import com.zruchno.ui.theme.MonochromeTheme
+
+@Composable
+fun Modifier.pinchFontSize(onFontRatio: (Float) -> Unit): Modifier {
+    val currentOnFontRatio by rememberUpdatedState(onFontRatio)
+    return pointerInput(Unit) {
+        awaitEachGesture {
+            awaitFirstDown(requireUnconsumed = false)
+            var previousDistance = 0f
+            do {
+                val event = awaitPointerEvent(PointerEventPass.Initial)
+                val pressedChanges = event.changes.filter { it.pressed }
+                if (pressedChanges.size >= 2) {
+                    val distance =
+                        (pressedChanges[0].position - pressedChanges[1].position).getDistance()
+                    if (previousDistance > 0f && distance != previousDistance) {
+                        currentOnFontRatio(distance / previousDistance)
+                    }
+                    previousDistance = distance
+                    pressedChanges.forEach { it.consume() }
+                } else {
+                    previousDistance = 0f
+                }
+            } while (event.changes.any { it.pressed })
+        }
+    }
+}
 
 @Composable
 fun HomeRoute(viewModel: HomeViewModel = viewModel()) {
@@ -61,6 +94,7 @@ fun HomeRoute(viewModel: HomeViewModel = viewModel()) {
     val filteredApps by viewModel.filteredApps.collectAsState()
     val query by viewModel.query.collectAsState()
     val hiddenPackages by viewModel.hiddenPackages.collectAsState()
+    val fontSize by viewModel.fontSize.collectAsState()
     var rightHand by rememberSaveable { mutableStateOf(false) }
     if (rightHand) {
         RightHandRoute(
@@ -79,6 +113,8 @@ fun HomeRoute(viewModel: HomeViewModel = viewModel()) {
             onToggleHidden = viewModel::toggleHidden,
             onSetHidden = viewModel::setHidden,
             onLaunchApp = viewModel::launchApp,
+            fontSize = fontSize,
+            onFontRatio = viewModel::applyFontRatio,
             cornerToggleText = "rh",
             onCornerToggle = { rightHand = true }
         )
@@ -97,6 +133,8 @@ fun HomeScreen(
     onToggleHidden: (AppInfo) -> Unit,
     onSetHidden: (Set<String>, Boolean) -> Unit,
     onLaunchApp: (AppInfo) -> Unit,
+    fontSize: Float = DEFAULT_FONT_SIZE,
+    onFontRatio: (Float) -> Unit = {},
     modifier: Modifier = Modifier,
     cornerToggleText: String = "",
     onCornerToggle: () -> Unit = {}
@@ -140,16 +178,16 @@ fun HomeScreen(
     BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
+            .pinchFontSize(onFontRatio)
             .background(MaterialTheme.colorScheme.background)
             .systemBarsPadding()
     ) {
         val boxWidth = maxWidth
         val boxHeight = maxHeight
-        val labelStyle = if (boxWidth < 360.dp) {
-            MaterialTheme.typography.bodyLarge.copy(fontSize = 14.sp, lineHeight = 20.sp)
-        } else {
-            MaterialTheme.typography.bodyLarge
-        }
+        val labelStyle = MaterialTheme.typography.bodyLarge.copy(
+            fontSize = fontSize.sp,
+            lineHeight = (fontSize * 1.5f).sp
+        )
 
         Column(Modifier.fillMaxSize()) {
             AnimatedVisibility(visible = searchVisible) {

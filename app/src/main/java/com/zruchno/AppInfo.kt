@@ -1,4 +1,4 @@
-package com.example.a10101010
+package com.zruchno
 
 data class AppInfo(
     val packageName: String,

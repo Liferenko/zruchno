@@ -1,4 +1,4 @@
-package com.example.a10101010.ui
+package com.zruchno.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -42,9 +42,10 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.a10101010.AppInfo
-import com.example.a10101010.HomeViewModel
-import com.example.a10101010.orderHomeApps
+import com.zruchno.AppInfo
+import com.zruchno.DEFAULT_FONT_SIZE
+import com.zruchno.HomeViewModel
+import com.zruchno.orderHomeApps
 
 @Composable
 fun RightHandRoute(
@@ -55,6 +56,7 @@ fun RightHandRoute(
     val filteredApps by viewModel.filteredApps.collectAsState()
     val query by viewModel.query.collectAsState()
     val hiddenPackages by viewModel.hiddenPackages.collectAsState()
+    val fontSize by viewModel.fontSize.collectAsState()
     val displayedApps = if (query.isBlank()) handApps else filteredApps
     RightHandScreen(
         apps = displayedApps,
@@ -66,7 +68,9 @@ fun RightHandRoute(
         onToggleHidden = viewModel::toggleHidden,
         onSetHidden = viewModel::setHidden,
         onLaunchApp = viewModel::launchApp,
-        onExit = onExit
+        onExit = onExit,
+        fontSize = fontSize,
+        onFontRatio = viewModel::applyFontRatio
     )
 }
 
@@ -83,6 +87,8 @@ fun RightHandScreen(
     onSetHidden: (Set<String>, Boolean) -> Unit,
     onLaunchApp: (AppInfo) -> Unit,
     onExit: () -> Unit,
+    fontSize: Float = DEFAULT_FONT_SIZE,
+    onFontRatio: (Float) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var searchVisible by rememberSaveable { mutableStateOf(false) }
@@ -127,17 +133,17 @@ fun RightHandScreen(
     BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
+            .pinchFontSize(onFontRatio)
             .background(MaterialTheme.colorScheme.background)
             .systemBarsPadding()
             .imePadding()
     ) {
         val boxWidth = maxWidth
         val boxHeight = maxHeight
-        val labelStyle = if (boxWidth < 360.dp) {
-            MaterialTheme.typography.bodyLarge.copy(fontSize = 14.sp, lineHeight = 20.sp)
-        } else {
-            MaterialTheme.typography.bodyLarge
-        }
+        val labelStyle = MaterialTheme.typography.bodyLarge.copy(
+            fontSize = fontSize.sp,
+            lineHeight = (fontSize * 1.5f).sp
+        )
 
         val thresholdPx = with(LocalDensity.current) { 64.dp.toPx() }
         val pullConnection = remember(thresholdPx) {
