@@ -27,6 +27,11 @@ fun orderHomeApps(apps: List<AppInfo>, hiddenPackages: Set<String>): List<AppInf
     return visible + hidden
 }
 
+fun orderHandApps(apps: List<AppInfo>, hiddenPackages: Set<String>): List<AppInfo> {
+    val (hidden, visible) = apps.partition { it.packageName in hiddenPackages }
+    return hidden + visible
+}
+
 fun applyHiddenChange(current: Set<String>, packages: Set<String>, hidden: Boolean): Set<String> =
     if (hidden) current + packages else current - packages
 
@@ -50,6 +55,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     val homeApps: StateFlow<List<AppInfo>> =
         combine(_apps, _hiddenPackages) { apps, hidden -> orderHomeApps(apps, hidden) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val handApps: StateFlow<List<AppInfo>> =
+        combine(_apps, _hiddenPackages) { apps, hidden -> orderHandApps(apps, hidden) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val filteredApps: StateFlow<List<AppInfo>> =

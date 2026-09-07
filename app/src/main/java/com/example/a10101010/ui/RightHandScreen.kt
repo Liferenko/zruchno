@@ -2,7 +2,6 @@ package com.example.a10101010.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -21,73 +20,58 @@ import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.runtime.remember
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.a10101010.AppInfo
 import com.example.a10101010.HomeViewModel
-import com.example.a10101010.ui.theme.MonochromeTheme
+import com.example.a10101010.orderHomeApps
 
 @Composable
-fun HomeRoute(viewModel: HomeViewModel = viewModel()) {
-    val homeApps by viewModel.homeApps.collectAsState()
+fun RightHandRoute(
+    viewModel: HomeViewModel = viewModel(),
+    onExit: () -> Unit
+) {
+    val handApps by viewModel.handApps.collectAsState()
     val filteredApps by viewModel.filteredApps.collectAsState()
     val query by viewModel.query.collectAsState()
     val hiddenPackages by viewModel.hiddenPackages.collectAsState()
-    var rightHand by rememberSaveable { mutableStateOf(false) }
-    if (rightHand) {
-        RightHandRoute(
-            viewModel = viewModel,
-            onExit = { rightHand = false }
-        )
-    } else {
-        val displayedApps = if (query.isBlank()) homeApps else filteredApps
-        HomeScreen(
-            apps = displayedApps,
-            hiddenPackages = hiddenPackages,
-            searchActive = query.isNotBlank(),
-            query = query,
-            onQueryChange = viewModel::onQueryChange,
-            onClearSearch = viewModel::clearSearch,
-            onToggleHidden = viewModel::toggleHidden,
-            onSetHidden = viewModel::setHidden,
-            onLaunchApp = viewModel::launchApp,
-            cornerToggleText = "rh",
-            onCornerToggle = { rightHand = true }
-        )
-    }
+    val displayedApps = if (query.isBlank()) handApps else filteredApps
+    RightHandScreen(
+        apps = displayedApps,
+        hiddenPackages = hiddenPackages,
+        searchActive = query.isNotBlank(),
+        query = query,
+        onQueryChange = viewModel::onQueryChange,
+        onClearSearch = viewModel::clearSearch,
+        onToggleHidden = viewModel::toggleHidden,
+        onSetHidden = viewModel::setHidden,
+        onLaunchApp = viewModel::launchApp,
+        onExit = onExit
+    )
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun HomeScreen(
+fun RightHandScreen(
     apps: List<AppInfo>,
     hiddenPackages: Set<String>,
     searchActive: Boolean,
@@ -97,14 +81,14 @@ fun HomeScreen(
     onToggleHidden: (AppInfo) -> Unit,
     onSetHidden: (Set<String>, Boolean) -> Unit,
     onLaunchApp: (AppInfo) -> Unit,
-    modifier: Modifier = Modifier,
-    cornerToggleText: String = "",
-    onCornerToggle: () -> Unit = {}
+    onExit: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     var searchVisible by rememberSaveable { mutableStateOf(false) }
     var optionsFor by remember { mutableStateOf<AppInfo?>(null) }
     var selectionMode by remember { mutableStateOf(false) }
     var selected by remember { mutableStateOf(emptySet<String>()) }
+    var pullAccum by remember { mutableStateOf(0f) }
     val keyboard = LocalSoftwareKeyboardController.current
 
     fun collapseSearch() {
@@ -129,11 +113,13 @@ fun HomeScreen(
         if (selected.isEmpty()) exitSelection()
     }
 
-    BackHandler(enabled = searchVisible || selectionMode) {
+    BackHandler {
         if (selectionMode) {
             exitSelection()
-        } else {
+        } else if (searchVisible) {
             collapseSearch()
+        } else {
+            onExit()
         }
     }
 
@@ -151,6 +137,29 @@ fun HomeScreen(
             MaterialTheme.typography.bodyLarge
         }
 
+        val thresholdPx = with(LocalDensity.current) { 64.dp.toPx() }
+        val pullConnection = remember(thresholdPx) {
+            object : NestedScrollConnection {
+                override fun onPostScroll(
+                    consumed: Offset,
+                    available: Offset,
+                    source: NestedScrollSource
+                ): Offset {
+                    val dy = available.y
+                    return if (dy < 0f && source == NestedScrollSource.UserInput) {
+                        pullAccum -= dy
+                        if (pullAccum >= thresholdPx) searchVisible = true
+                        Offset(0f, dy)
+                    } else {
+                        Offset.Zero
+                    }
+                }
+            }
+        }
+        LaunchedEffect(searchVisible) {
+            pullAccum = 0f
+        }
+
         Column(Modifier.fillMaxSize()) {
             AnimatedVisibility(visible = searchVisible) {
                 AppSearchField(
@@ -162,28 +171,32 @@ fun HomeScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(
-                            horizontal = boxWidth * 0.06f,
-                            vertical = boxHeight * 0.02f
+                            start = boxWidth * 0.38f,
+                            end = boxWidth * 0.04f,
+                            top = boxHeight * 0.02f,
+                            bottom = boxHeight * 0.02f
                         )
                 )
             }
 
-            PullToRefreshBox(
-                isRefreshing = false,
-                onRefresh = { searchVisible = true },
-                indicator = {},
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
                     .weight(1f)
+                    .fillMaxWidth()
+                    .nestedScroll(pullConnection)
             ) {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
+                    reverseLayout = true,
                     contentPadding = PaddingValues(
-                        horizontal = boxWidth * 0.06f,
-                        vertical = boxHeight * 0.04f
+                        start = boxWidth * 0.38f,
+                        end = boxWidth * 0.04f,
+                        top = boxHeight * 0.02f,
+                        bottom = boxHeight * 0.02f
                     )
                 ) {
-                    items(apps, key = { it.packageName }) { app ->
+                    val panelApps = if (searchActive) apps else orderHomeApps(apps, hiddenPackages)
+                    items(panelApps, key = { it.packageName }) { app ->
                         val isHidden = !searchActive && app.packageName in hiddenPackages
                         val labelColor = if (isHidden) {
                             MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f)
@@ -247,13 +260,19 @@ fun HomeScreen(
 
             AnimatedVisibility(visible = selectionMode) {
                 val selectedApps = apps.filter { it.packageName in selected }
-                val visibleSelected = selectedApps.filter { it.packageName !in hiddenPackages }.map { it.packageName }.toSet()
-                val hiddenSelected = selectedApps.filter { it.packageName in hiddenPackages }.map { it.packageName }.toSet()
+                val visibleSelected = selectedApps
+                    .filter { it.packageName !in hiddenPackages }
+                    .map { it.packageName }
+                    .toSet()
+                val hiddenSelected = selectedApps
+                    .filter { it.packageName in hiddenPackages }
+                    .map { it.packageName }
+                    .toSet()
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = boxWidth * 0.06f, vertical = boxHeight * 0.02f),
-                    horizontalArrangement = Arrangement.spacedBy(boxWidth * 0.04f)
+                        .padding(start = boxWidth * 0.38f, end = boxWidth * 0.04f, top = boxHeight * 0.015f, bottom = boxHeight * 0.015f),
+                    horizontalArrangement = Arrangement.spacedBy(boxWidth * 0.03f)
                 ) {
                     Text(
                         text = "${selected.size} selected",
@@ -295,135 +314,22 @@ fun HomeScreen(
             }
         }
 
-        if (cornerToggleText.isNotEmpty() && !searchVisible && !selectionMode) {
+        if (!searchVisible && !selectionMode) {
             Text(
-                text = cornerToggleText,
+                text = "hm",
                 style = labelStyle,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(end = boxWidth * 0.06f, bottom = boxHeight * 0.03f)
+                    .padding(end = boxWidth * 0.05f, bottom = boxHeight * 0.03f)
                     .border(
                         width = 1.dp,
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
                         shape = RoundedCornerShape(4.dp)
                     )
-                    .clickable(onClick = onCornerToggle)
+                    .clickable(onClick = onExit)
                     .padding(horizontal = 8.dp, vertical = 4.dp)
             )
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun HomeScreenPreview() {
-    MonochromeTheme {
-        HomeScreen(
-            apps = listOf(
-                AppInfo("com.example.calculator", "Calculator"),
-                AppInfo("com.example.settings", "Settings"),
-                AppInfo("com.example.telephone", "Telephone")
-            ),
-            hiddenPackages = setOf("com.example.telephone"),
-            searchActive = false,
-            query = "",
-            onQueryChange = {},
-            onClearSearch = {},
-            onToggleHidden = {},
-            onSetHidden = { _, _ -> },
-            onLaunchApp = {}
-        )
-    }
-}
-
-@Composable
-fun AppSearchField(
-    query: String,
-    onQueryChange: (String) -> Unit,
-    onClear: () -> Unit,
-    autofocus: Boolean,
-    textStyle: TextStyle,
-    modifier: Modifier = Modifier
-) {
-    val focusRequester = remember { FocusRequester() }
-    val keyboard = LocalSoftwareKeyboardController.current
-    LaunchedEffect(autofocus) {
-        if (autofocus) {
-            focusRequester.requestFocus()
-            keyboard?.show()
-        }
-    }
-    TextField(
-        value = query,
-        onValueChange = onQueryChange,
-        modifier = modifier.focusRequester(focusRequester),
-        placeholder = {
-            Text(
-                text = "search",
-                style = textStyle,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-        },
-        colors = TextFieldDefaults.colors(
-            focusedContainerColor = Color.Transparent,
-            unfocusedContainerColor = Color.Transparent
-        ),
-        textStyle = textStyle,
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-        keyboardActions = KeyboardActions(onSearch = { onClear() }),
-        trailingIcon = {
-            Text(
-                text = "\u00d7",
-                style = textStyle,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier
-                    .clickable(onClick = onClear)
-                    .padding(8.dp)
-            )
-        }
-    )
-}
-
-@Composable
-fun AppOptionsMenu(
-    expanded: Boolean,
-    onDismissRequest: () -> Unit,
-    labelStyle: TextStyle,
-    isHidden: Boolean,
-    onToggleHidden: () -> Unit,
-    onStartSelect: () -> Unit
-) {
-    DropdownMenu(
-        expanded = expanded,
-        onDismissRequest = onDismissRequest,
-        containerColor = MaterialTheme.colorScheme.background,
-        shape = RoundedCornerShape(4.dp),
-        border = BorderStroke(
-            width = 1.dp,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-    ) {
-        DropdownMenuItem(
-            text = {
-                Text(
-                    text = if (isHidden) "unhide" else "hide",
-                    style = labelStyle,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-            },
-            onClick = onToggleHidden
-        )
-        DropdownMenuItem(
-            text = {
-                Text(
-                    text = "select",
-                    style = labelStyle,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-            },
-            onClick = onStartSelect
-        )
     }
 }

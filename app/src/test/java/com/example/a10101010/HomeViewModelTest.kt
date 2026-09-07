@@ -84,6 +84,29 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun orderHandAppsKeepsEverythingWhenNothingHidden() {
+        assertEquals(apps, orderHandApps(apps, emptySet()))
+    }
+
+    @Test
+    fun orderHandAppsMovesHiddenToTop() {
+        val hidden = setOf("com.example.phone")
+        assertEquals(
+            listOf(apps[3], apps[0], apps[1], apps[2]),
+            orderHandApps(apps, hidden)
+        )
+    }
+
+    @Test
+    fun orderHandAppsGroupsHiddenAboveVisibleAlphabetically() {
+        val hidden = setOf("com.example.calendar", "com.example.phone")
+        assertEquals(
+            listOf(apps[0], apps[3], apps[1], apps[2]),
+            orderHandApps(apps, hidden)
+        )
+    }
+
+    @Test
     fun applyHiddenChangeBulkHidesAll() {
         val current = setOf("com.example.calendar")
         val updated = applyHiddenChange(current, setOf("com.example.camera", "com.example.phone"), true)
