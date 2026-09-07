@@ -47,16 +47,16 @@ The right-hand screen SHALL reuse the same hidden-package set, live search filte
 - **THEN** the same behaviors SHALL occur as on the normal home screen
 
 ### Requirement: Search revealed by pull-up
-On the right-hand screen, a drag upward within the list past a threshold SHALL reveal the shared search field pinned at the top of the screen. Clearing, ×, or back SHALL collapse the search field and restore the full list.
+On the right-hand screen, a drag upward within the list past a threshold SHALL reveal the shared search field pinned at the bottom of the screen (thumb-reach). Clearing, ×, or back SHALL collapse the search field and restore the full list. The list SHALL remain bottom-anchored while searching — results run bottom-up exactly like the non-hidden apps — and SHALL be kept above the soft keyboard.
 
 #### Scenario: Pull-up reveals search
 - **WHEN** the user drags upward within the list past the threshold while search is hidden
-- **THEN** the search field SHALL appear at the top of the screen
+- **THEN** the search field SHALL appear at the bottom of the screen
 
 #### Scenario: Search filters the list
 - **WHEN** the user types in the revealed search field
-- **THEN** the list SHALL filter live to matching apps
+- **THEN** the list SHALL filter live to matching apps, kept bottom-up and above the soft keyboard
 
 #### Scenario: Collapse restores full list
 - **WHEN** the user clears the query, taps ×, or presses back while search is open
-- **THEN** the search field SHALL hide and the full list SHALL restore
+- **THEN** the search field SHALL hide and the full bottom-anchored list SHALL restore
