@@ -49,6 +49,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
@@ -95,6 +96,7 @@ fun HomeRoute(viewModel: HomeViewModel = viewModel()) {
     val query by viewModel.query.collectAsState()
     val hiddenPackages by viewModel.hiddenPackages.collectAsState()
     val fontSize by viewModel.fontSize.collectAsState()
+    val context = LocalContext.current
     var rightHand by rememberSaveable { mutableStateOf(false) }
     if (rightHand) {
         RightHandRoute(
@@ -112,7 +114,9 @@ fun HomeRoute(viewModel: HomeViewModel = viewModel()) {
             onClearSearch = viewModel::clearSearch,
             onToggleHidden = viewModel::toggleHidden,
             onSetHidden = viewModel::setHidden,
-            onLaunchApp = viewModel::launchApp,
+            onLaunchApp = { viewModel.launchApp(it, context) },
+            onOpenAppInfo = { viewModel.openAppInfo(it, context) },
+            onRequestUninstall = { viewModel.requestUninstall(it, context) },
             fontSize = fontSize,
             onFontRatio = viewModel::applyFontRatio,
             cornerToggleText = "rh",
@@ -133,6 +137,8 @@ fun HomeScreen(
     onToggleHidden: (AppInfo) -> Unit,
     onSetHidden: (Set<String>, Boolean) -> Unit,
     onLaunchApp: (AppInfo) -> Unit,
+    onOpenAppInfo: (AppInfo) -> Unit = {},
+    onRequestUninstall: (AppInfo) -> Unit = {},
     fontSize: Float = DEFAULT_FONT_SIZE,
     onFontRatio: (Float) -> Unit = {},
     modifier: Modifier = Modifier,
@@ -143,7 +149,9 @@ fun HomeScreen(
     var optionsFor by remember { mutableStateOf<AppInfo?>(null) }
     var selectionMode by remember { mutableStateOf(false) }
     var selected by remember { mutableStateOf(emptySet<String>()) }
+    var appToUninstall by remember { mutableStateOf<AppInfo?>(null) }
     val keyboard = LocalSoftwareKeyboardController.current
+    val selfPackageName = LocalContext.current.packageName
 
     fun collapseSearch() {
         searchVisible = false
@@ -167,11 +175,11 @@ fun HomeScreen(
         if (selected.isEmpty()) exitSelection()
     }
 
-    BackHandler(enabled = searchVisible || selectionMode) {
-        if (selectionMode) {
-            exitSelection()
-        } else {
-            collapseSearch()
+    BackHandler(enabled = searchVisible || selectionMode || appToUninstall != null) {
+        when {
+            appToUninstall != null -> appToUninstall = null
+            selectionMode -> exitSelection()
+            else -> collapseSearch()
         }
     }
 
@@ -275,11 +283,53 @@ fun HomeScreen(
                                         selected = selected + app.packageName
                                         selectionMode = true
                                         optionsFor = null
+                                    },
+                                    showUninstall = !app.isSystemApp && app.packageName != selfPackageName,
+                                    onOpenInfo = {
+                                        onOpenAppInfo(app)
+                                        optionsFor = null
+                                    },
+                                    onUninstall = {
+                                        appToUninstall = app
+                                        optionsFor = null
                                     }
                                 )
                             }
                         }
                     }
+                }
+            }
+
+            AnimatedVisibility(visible = appToUninstall != null) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = boxWidth * 0.06f, vertical = boxHeight * 0.02f),
+                    horizontalArrangement = Arrangement.spacedBy(boxWidth * 0.04f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "uninstall ${appToUninstall?.label ?: ""}?",
+                        style = labelStyle,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        text = "yes",
+                        style = labelStyle,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.clickable {
+                            val app = appToUninstall ?: return@clickable
+                            appToUninstall = null
+                            onRequestUninstall(app)
+                        }
+                    )
+                    Text(
+                        text = "no",
+                        style = labelStyle,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.clickable { appToUninstall = null }
+                    )
                 }
             }
 
@@ -431,7 +481,10 @@ fun AppOptionsMenu(
     labelStyle: TextStyle,
     isHidden: Boolean,
     onToggleHidden: () -> Unit,
-    onStartSelect: () -> Unit
+    onStartSelect: () -> Unit,
+    showUninstall: Boolean,
+    onOpenInfo: () -> Unit,
+    onUninstall: () -> Unit
 ) {
     DropdownMenu(
         expanded = expanded,
@@ -463,5 +516,27 @@ fun AppOptionsMenu(
             },
             onClick = onStartSelect
         )
+        DropdownMenuItem(
+            text = {
+                Text(
+                    text = "info",
+                    style = labelStyle,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+            },
+            onClick = onOpenInfo
+        )
+        if (showUninstall) {
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        text = "uninstall",
+                        style = labelStyle,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                },
+                onClick = onUninstall
+            )
+        }
     }
 }

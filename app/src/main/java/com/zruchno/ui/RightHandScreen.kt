@@ -37,6 +37,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
@@ -57,6 +58,7 @@ fun RightHandRoute(
     val query by viewModel.query.collectAsState()
     val hiddenPackages by viewModel.hiddenPackages.collectAsState()
     val fontSize by viewModel.fontSize.collectAsState()
+    val context = LocalContext.current
     val displayedApps = if (query.isBlank()) handApps else filteredApps
     RightHandScreen(
         apps = displayedApps,
@@ -67,7 +69,9 @@ fun RightHandRoute(
         onClearSearch = viewModel::clearSearch,
         onToggleHidden = viewModel::toggleHidden,
         onSetHidden = viewModel::setHidden,
-        onLaunchApp = viewModel::launchApp,
+        onLaunchApp = { viewModel.launchApp(it, context) },
+        onOpenAppInfo = { viewModel.openAppInfo(it, context) },
+        onRequestUninstall = { viewModel.requestUninstall(it, context) },
         onExit = onExit,
         fontSize = fontSize,
         onFontRatio = viewModel::applyFontRatio
@@ -86,6 +90,8 @@ fun RightHandScreen(
     onToggleHidden: (AppInfo) -> Unit,
     onSetHidden: (Set<String>, Boolean) -> Unit,
     onLaunchApp: (AppInfo) -> Unit,
+    onOpenAppInfo: (AppInfo) -> Unit = {},
+    onRequestUninstall: (AppInfo) -> Unit = {},
     onExit: () -> Unit,
     fontSize: Float = DEFAULT_FONT_SIZE,
     onFontRatio: (Float) -> Unit = {},
@@ -96,7 +102,9 @@ fun RightHandScreen(
     var selectionMode by remember { mutableStateOf(false) }
     var selected by remember { mutableStateOf(emptySet<String>()) }
     var pullAccum by remember { mutableStateOf(0f) }
+    var appToUninstall by remember { mutableStateOf<AppInfo?>(null) }
     val keyboard = LocalSoftwareKeyboardController.current
+    val selfPackageName = LocalContext.current.packageName
 
     fun collapseSearch() {
         searchVisible = false
@@ -121,12 +129,11 @@ fun RightHandScreen(
     }
 
     BackHandler {
-        if (selectionMode) {
-            exitSelection()
-        } else if (searchVisible) {
-            collapseSearch()
-        } else {
-            onExit()
+        when {
+            appToUninstall != null -> appToUninstall = null
+            selectionMode -> exitSelection()
+            searchVisible -> collapseSearch()
+            else -> onExit()
         }
     }
 
@@ -240,6 +247,15 @@ fun RightHandScreen(
                                         selected = selected + app.packageName
                                         selectionMode = true
                                         optionsFor = null
+                                    },
+                                    showUninstall = !app.isSystemApp && app.packageName != selfPackageName,
+                                    onOpenInfo = {
+                                        onOpenAppInfo(app)
+                                        optionsFor = null
+                                    },
+                                    onUninstall = {
+                                        appToUninstall = app
+                                        optionsFor = null
                                     }
                                 )
                             }
@@ -317,6 +333,39 @@ fun RightHandScreen(
                         style = labelStyle,
                         color = MaterialTheme.colorScheme.onBackground,
                         modifier = Modifier.clickable { exitSelection() }
+                    )
+                }
+            }
+
+            AnimatedVisibility(visible = appToUninstall != null) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = boxWidth * 0.38f, end = boxWidth * 0.04f, top = boxHeight * 0.015f, bottom = boxHeight * 0.015f),
+                    horizontalArrangement = Arrangement.spacedBy(boxWidth * 0.03f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "uninstall ${appToUninstall?.label ?: ""}?",
+                        style = labelStyle,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        text = "yes",
+                        style = labelStyle,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.clickable {
+                            val app = appToUninstall ?: return@clickable
+                            appToUninstall = null
+                            onRequestUninstall(app)
+                        }
+                    )
+                    Text(
+                        text = "no",
+                        style = labelStyle,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.clickable { appToUninstall = null }
                     )
                 }
             }

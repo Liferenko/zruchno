@@ -3,7 +3,10 @@ package com.zruchno
 import android.app.Application
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
+import android.net.Uri
+import android.provider.Settings
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -124,15 +127,35 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         _apps.value = resolveInfos
             .mapNotNull { info ->
                 val label = info.loadLabel(packageManager).toString()
-                AppInfo(packageName = info.activityInfo.packageName, label = label)
+                val isSystemApp = info.activityInfo.applicationInfo.flags and ApplicationInfo.FLAG_SYSTEM != 0
+                AppInfo(
+                    packageName = info.activityInfo.packageName,
+                    label = label,
+                    isSystemApp = isSystemApp
+                )
             }
             .distinctBy { it.packageName }
             .sortedBy { it.label.lowercase() }
     }
 
-    fun launchApp(app: AppInfo) {
+    fun launchApp(app: AppInfo, context: Context) {
         val launchIntent = packageManager.getLaunchIntentForPackage(app.packageName) ?: return
         launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        getApplication<Application>().startActivity(launchIntent)
+        context.startActivity(launchIntent)
+    }
+
+    fun openAppInfo(app: AppInfo, context: Context) {
+        val intent = Intent(
+            Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+            Uri.parse("package:${app.packageName}")
+        )
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(intent)
+    }
+
+    fun requestUninstall(app: AppInfo, context: Context) {
+        val intent = Intent(Intent.ACTION_DELETE, Uri.parse("package:${app.packageName}"))
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(intent)
     }
 }
