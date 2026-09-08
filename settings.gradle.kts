@@ -22,5 +22,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "10101010"
+rootProject.name = "zruchno"
 include(":app")

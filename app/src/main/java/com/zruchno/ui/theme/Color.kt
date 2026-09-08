@@ -1,4 +1,4 @@
-package com.example.a10101010.ui.theme
+package com.zruchno.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
