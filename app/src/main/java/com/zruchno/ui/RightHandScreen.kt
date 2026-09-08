@@ -231,7 +231,6 @@ fun RightHandScreen(
                                     style = labelStyle,
                                     color = labelColor,
                                     modifier = Modifier
-                                        .fillMaxWidth()
                                         .combinedClickable(
                                             onClick = { onLaunchApp(app) },
                                             onLongClick = { optionsFor = app }
