@@ -48,9 +48,11 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
@@ -85,6 +87,36 @@ fun Modifier.pinchFontSize(onFontRatio: (Float) -> Unit): Modifier {
                     previousDistance = 0f
                 }
             } while (event.changes.any { it.pressed })
+        }
+    }
+}
+
+@Composable
+fun Modifier.dismissOnEmptyTap(onDismiss: () -> Unit): Modifier {
+    val currentOnDismiss by rememberUpdatedState(onDismiss)
+    val touchSlop = LocalViewConfiguration.current.touchSlop
+    return pointerInput(touchSlop) {
+        awaitEachGesture {
+            val down = awaitFirstDown(requireUnconsumed = false)
+            val downPosition = down.position
+            var up: PointerInputChange? = null
+            var cancelled = false
+            while (up == null && !cancelled) {
+                val event = awaitPointerEvent()
+                if (event.changes.count { it.pressed } > 1) {
+                    cancelled = true
+                    break
+                }
+                val change = event.changes.firstOrNull { it.id == down.id } ?: continue
+                when {
+                    change.isConsumed -> cancelled = true
+                    !change.pressed -> up = change
+                    (change.position - downPosition).getDistance() >= touchSlop -> cancelled = true
+                }
+            }
+            if (up != null && !up.isConsumed) {
+                currentOnDismiss()
+            }
         }
     }
 }
@@ -187,6 +219,10 @@ fun HomeScreen(
         modifier = modifier
             .fillMaxSize()
             .pinchFontSize(onFontRatio)
+            .dismissOnEmptyTap {
+                if (optionsFor != null) optionsFor = null
+                if (searchVisible) collapseSearch()
+            }
             .background(MaterialTheme.colorScheme.background)
             .systemBarsPadding()
     ) {

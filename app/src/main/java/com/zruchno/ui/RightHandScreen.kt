@@ -141,6 +141,10 @@ fun RightHandScreen(
         modifier = modifier
             .fillMaxSize()
             .pinchFontSize(onFontRatio)
+            .dismissOnEmptyTap {
+                if (optionsFor != null) optionsFor = null
+                if (searchVisible) collapseSearch()
+            }
             .background(MaterialTheme.colorScheme.background)
             .systemBarsPadding()
             .imePadding()
