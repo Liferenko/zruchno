@@ -53,24 +53,30 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun filterMatchesPackageName() {
+        assertEquals(listOf(apps[3]), filterApps(apps, "example.phone"))
+        assertEquals(listOf(apps[1]), filterApps(apps, "COM.EXAMPLE.CAM"))
+    }
+
+    @Test
     fun orderHomeAppsKeepsEverythingWhenNothingHidden() {
         assertEquals(apps, orderHomeApps(apps, emptySet()))
     }
 
     @Test
-    fun orderHomeAppsMovesHiddenToBottom() {
+    fun orderHomeAppsOmitsHiddenApps() {
         val hidden = setOf("com.example.phone")
         assertEquals(
-            listOf(apps[0], apps[1], apps[2], apps[3]),
+            listOf(apps[0], apps[1], apps[2]),
             orderHomeApps(apps, hidden)
         )
     }
 
     @Test
-    fun orderHomeAppsGroupsHiddenAfterVisible() {
+    fun orderHomeAppsOmitsMultipleHiddenApps() {
         val hidden = setOf("com.example.calendar", "com.example.phone")
         assertEquals(
-            listOf(apps[1], apps[2], apps[0], apps[3]),
+            listOf(apps[1], apps[2]),
             orderHomeApps(apps, hidden)
         )
     }
@@ -89,19 +95,19 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun orderHandAppsMovesHiddenToTop() {
+    fun orderHandAppsOmitsHiddenApps() {
         val hidden = setOf("com.example.phone")
         assertEquals(
-            listOf(apps[3], apps[0], apps[1], apps[2]),
+            listOf(apps[0], apps[1], apps[2]),
             orderHandApps(apps, hidden)
         )
     }
 
     @Test
-    fun orderHandAppsGroupsHiddenAboveVisibleAlphabetically() {
+    fun orderHandAppsOmitsMultipleHiddenApps() {
         val hidden = setOf("com.example.calendar", "com.example.phone")
         assertEquals(
-            listOf(apps[0], apps[3], apps[1], apps[2]),
+            listOf(apps[1], apps[2]),
             orderHandApps(apps, hidden)
         )
     }

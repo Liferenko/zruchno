@@ -21,19 +21,18 @@ fun filterApps(apps: List<AppInfo>, query: String): List<AppInfo> {
     return if (trimmed.isEmpty()) {
         apps
     } else {
-        apps.filter { it.label.contains(trimmed, ignoreCase = true) }
+        apps.filter {
+            it.label.contains(trimmed, ignoreCase = true) ||
+                it.packageName.contains(trimmed, ignoreCase = true)
+        }
     }
 }
 
-fun orderHomeApps(apps: List<AppInfo>, hiddenPackages: Set<String>): List<AppInfo> {
-    val (hidden, visible) = apps.partition { it.packageName in hiddenPackages }
-    return visible + hidden
-}
+fun orderHomeApps(apps: List<AppInfo>, hiddenPackages: Set<String>): List<AppInfo> =
+    apps.filterNot { it.packageName in hiddenPackages }
 
-fun orderHandApps(apps: List<AppInfo>, hiddenPackages: Set<String>): List<AppInfo> {
-    val (hidden, visible) = apps.partition { it.packageName in hiddenPackages }
-    return hidden + visible
-}
+fun orderHandApps(apps: List<AppInfo>, hiddenPackages: Set<String>): List<AppInfo> =
+    apps.filterNot { it.packageName in hiddenPackages }
 
 fun applyHiddenChange(current: Set<String>, packages: Set<String>, hidden: Boolean): Set<String> =
     if (hidden) current + packages else current - packages

@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -184,6 +185,13 @@ fun HomeScreen(
     var appToUninstall by remember { mutableStateOf<AppInfo?>(null) }
     val keyboard = LocalSoftwareKeyboardController.current
     val selfPackageName = LocalContext.current.packageName
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(searchVisible, query.isBlank()) {
+        if (!searchVisible || query.isBlank()) {
+            listState.scrollToItem(0)
+        }
+    }
 
     fun collapseSearch() {
         searchVisible = false
@@ -239,6 +247,10 @@ fun HomeScreen(
                     query = query,
                     onQueryChange = onQueryChange,
                     onClear = { collapseSearch() },
+                    onSubmit = {
+                        apps.firstOrNull()?.let(onLaunchApp)
+                        collapseSearch()
+                    },
                     autofocus = searchVisible,
                     textStyle = labelStyle,
                     modifier = Modifier
@@ -259,6 +271,7 @@ fun HomeScreen(
                     .weight(1f)
             ) {
                 LazyColumn(
+                    state = listState,
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(
                         horizontal = boxWidth * 0.06f,
@@ -467,7 +480,8 @@ fun AppSearchField(
     onClear: () -> Unit,
     autofocus: Boolean,
     textStyle: TextStyle,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onSubmit: (() -> Unit)? = null
 ) {
     val focusRequester = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
@@ -495,7 +509,7 @@ fun AppSearchField(
         textStyle = textStyle,
         singleLine = true,
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-        keyboardActions = KeyboardActions(onSearch = { onClear() }),
+        keyboardActions = KeyboardActions(onSearch = { onSubmit?.invoke() }),
         trailingIcon = {
             Text(
                 text = "\u00d7",

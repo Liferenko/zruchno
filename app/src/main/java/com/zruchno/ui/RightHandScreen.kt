@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -105,6 +106,13 @@ fun RightHandScreen(
     var appToUninstall by remember { mutableStateOf<AppInfo?>(null) }
     val keyboard = LocalSoftwareKeyboardController.current
     val selfPackageName = LocalContext.current.packageName
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(searchVisible, query.isBlank()) {
+        if (!searchVisible || query.isBlank()) {
+            listState.scrollToItem(0)
+        }
+    }
 
     fun collapseSearch() {
         searchVisible = false
@@ -189,6 +197,7 @@ fun RightHandScreen(
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     reverseLayout = true,
+                    state = listState,
                     contentPadding = PaddingValues(
                         start = boxWidth * 0.38f,
                         end = boxWidth * 0.04f,
@@ -272,6 +281,10 @@ fun RightHandScreen(
                     query = query,
                     onQueryChange = onQueryChange,
                     onClear = { collapseSearch() },
+                    onSubmit = {
+                        apps.firstOrNull()?.let(onLaunchApp)
+                        collapseSearch()
+                    },
                     autofocus = searchVisible,
                     textStyle = labelStyle,
                     modifier = Modifier
