@@ -1,8 +1,10 @@
 package com.zruchno
 
 import android.app.Application
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -80,8 +82,27 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         combine(_apps, _query) { apps, query -> filterApps(apps, query) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    private val packageChangesReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            refresh()
+        }
+    }
+
     init {
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_PACKAGE_ADDED)
+            addAction(Intent.ACTION_PACKAGE_REMOVED)
+            addAction(Intent.ACTION_PACKAGE_REPLACED)
+            addAction(Intent.ACTION_PACKAGE_CHANGED)
+            addDataScheme("package")
+        }
+        application.registerReceiver(packageChangesReceiver, filter)
         refresh()
+    }
+
+    override fun onCleared() {
+        getApplication<Application>().unregisterReceiver(packageChangesReceiver)
+        super.onCleared()
     }
 
     fun onQueryChange(value: String) {
